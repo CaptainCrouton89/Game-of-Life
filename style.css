@@ -64,14 +64,14 @@ body {
 #startButtonSphere {
   width: 80px;
   height: 80px;
-  background-color: #ff0000; /* Player sphere red */
+  background-color: #808080; /* Changed to gray */
   border-radius: 50%;
   margin: 20px auto;
   cursor: pointer;
   border: 3px solid white;
-  box-shadow: 0 0 15px #ff0000, inset 0 0 10px rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 15px #808080, inset 0 0 10px rgba(255, 255, 255, 0.5); /* Adjusted shadow to match gray */
   transition: transform 0.3s ease-out, box-shadow 0.3s ease-out,
-    opacity 0.3s ease-out, background-color 0.3s ease-out; /* Added opacity and background-color, adjusted timing */
+    opacity 0.3s ease-out, background-color 0.3s ease-out;
 }
 
 #startButtonSphere.sphere-born {
@@ -84,9 +84,11 @@ body {
 #startButtonSphere:hover {
   transform: scale(1.2); /* Increased scale */
   box-shadow: 0 0 30px #ff0000, 0 0 50px #ff4500,
-    /* Brighter, wider glow */ 0 0 70px #ff8c00,
+    /* Keeping original glow for now, can be adjusted */
+      /* Brighter, wider glow */ 0 0 70px #ff8c00,
     /* Added third layer of orange glow */ inset 0 0 15px
       rgba(255, 255, 255, 0.7); /* Brighter inner glow */
+  /* background-color will be handled by JavaScript */
 }
 
 #startGameButton {

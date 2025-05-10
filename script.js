@@ -222,6 +222,57 @@ let isFadingToGray = false;
 let gameOverStartTime = 0;
 const gameOverFadeDuration = 15000; // 20 seconds
 
+// Helper function to convert HSL to Hex
+function hslToHex(h, s, l) {
+  let r, g, b;
+  if (s === 0) {
+    r = g = b = l; // achromatic
+  } else {
+    const hue2rgb = (p, q, t) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1 / 3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1 / 3);
+  }
+  const toHex = (x) => {
+    const hex = Math.round(x * 255).toString(16);
+    return hex.length === 1 ? "0" + hex : hex;
+  };
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+// Start Button Sphere Hover Effect
+const startButtonSphere = document.getElementById("startButtonSphere");
+const defaultSphereColor = "#808080"; // Default gray color
+
+if (startButtonSphere) {
+  startButtonSphere.addEventListener("mouseover", () => {
+    // Generate bright HSL color and convert to Hex
+    const h = Math.random(); // Hue (0 to 1)
+    const s = 0.7 + Math.random() * 0.3; // Saturation (0.7 to 1.0 for vivid colors)
+    const l = 0.55 + Math.random() * 0.15; // Lightness (0.55 to 0.7 for bright, not too pale)
+    const randomColor = hslToHex(h, s, l);
+
+    startButtonSphere.style.backgroundColor = randomColor;
+    // Update box-shadow color to match the random color
+    startButtonSphere.style.boxShadow = `0 0 20px ${randomColor}, inset 0 0 10px rgba(255, 255, 255, 0.7)`;
+  });
+
+  startButtonSphere.addEventListener("mouseout", () => {
+    startButtonSphere.style.backgroundColor = defaultSphereColor;
+    // Revert box-shadow to default gray
+    startButtonSphere.style.boxShadow = `0 0 15px ${defaultSphereColor}, inset 0 0 10px rgba(255, 255, 255, 0.5)`;
+  });
+}
+
 // Helper function to create gray balls
 function createGrayBall(position) {
   const grayBallGeometry = new THREE.SphereGeometry(0.5, 32, 32);
@@ -729,13 +780,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const startGameButton = document.getElementById("startGameButton"); // Though likely unused now
   const startButtonSphere = document.getElementById("startButtonSphere");
   // const controlsHintElement = document.getElementById("controlsHint"); // Get the new element // REMOVED
-
-  // Determine and set control hint message // REMOVED
-  // if (navigator.maxTouchPoints > 0) { // REMOVED
-  //   controlsHintElement.innerText = "Swipe to move"; // REMOVED
-  // } else { // REMOVED
-  //   controlsHintElement.innerText = "Use arrow keys to move"; // REMOVED
-  // } // REMOVED
 
   function actualStartGame() {
     if (gameIsRunning) return; // Prevent multiple starts
