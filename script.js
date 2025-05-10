@@ -28,7 +28,7 @@ const initialAmbientLightColor = ambientLight.color.clone();
 
 // Player Sphere - Defined EARLIER NOW
 const sphereGeometry = new THREE.SphereGeometry(0.5, 32, 32);
-const initialSphereColor = new THREE.Color(0xff0000);
+const initialSphereColor = new THREE.Color().setHSL(Math.random(), 1.0, 0.5); // Random HSL color from the start
 const sphereMaterial = new THREE.MeshStandardMaterial({
   color: initialSphereColor.clone(),
 });
@@ -190,6 +190,8 @@ let hopStartPosition = new THREE.Vector3();
 let hopTargetPosition = new THREE.Vector3();
 const sphereBaseY = 0.5; // Player sphere's resting Y position
 
+let controlsInteractionCount = 0; // New variable to track control usage
+
 // --- Sign Constants ---
 const signSpawnDisplayedSteps = [10, 20, 30, 40, 50, 60, 70, 80];
 const spawnedSignsForDisplayedStep = new Set();
@@ -218,7 +220,7 @@ const groundTextTextureCache = {};
 // --- Game Over Sequence Variables ---
 let isFadingToGray = false;
 let gameOverStartTime = 0;
-const gameOverFadeDuration = 20000; // 20 seconds
+const gameOverFadeDuration = 15000; // 20 seconds
 
 // Helper function to create gray balls
 function createGrayBall(position) {
@@ -390,6 +392,21 @@ function movePlayer(direction) {
     spawnedSignsForDisplayedStep.add(displayedSteps);
   }
 
+  // Special sign at displayedSteps = 12
+  if (
+    displayedSteps === 12 &&
+    !spawnedSignsForDisplayedStep.has("special_12")
+  ) {
+    const playerLandPos = hopTargetPosition.clone();
+    // For a centered sign, pass null as the third argument (isLeft)
+    createSign(
+      playerLandPos,
+      "42% of players do not win—don't be one of them!",
+      null
+    );
+    spawnedSignsForDisplayedStep.add("special_12"); // Use a unique key for this special sign
+  }
+
   if (
     grayBallSpawnDisplayedSteps.includes(displayedSteps) &&
     !spawnedGrayBallsForDisplayedStep.has(displayedSteps)
@@ -500,18 +517,106 @@ function movePlayer(direction) {
 document.addEventListener("keyup", (event) => {
   if (!gameIsRunning || (!gameActive && currentStepSize <= minStepSize)) return;
 
+  let interactionRegistered = false;
   switch (event.key) {
     case "ArrowUp":
-      movePlayer("forward");
-      break;
     case "ArrowLeft":
-      movePlayer("left");
-      break;
     case "ArrowRight":
-      movePlayer("right");
+      movePlayer(
+        event.key === "ArrowUp"
+          ? "forward"
+          : event.key === "ArrowLeft"
+          ? "left"
+          : "right"
+      );
+      interactionRegistered = true;
       break;
   }
+
+  if (interactionRegistered) {
+    controlsInteractionCount++;
+    if (controlsInteractionCount >= 3) {
+      const inGameHintElement = document.getElementById("inGameControlsHint");
+      if (inGameHintElement) {
+        inGameHintElement.style.display = "none";
+      }
+    }
+  }
 });
+
+// --- Touch Controls for Mobile ---
+let touchStartX = 0;
+let touchStartY = 0;
+let touchEndX = 0;
+let touchEndY = 0;
+
+document.addEventListener(
+  "touchstart",
+  function (event) {
+    touchStartX = event.changedTouches[0].screenX;
+    touchStartY = event.changedTouches[0].screenY;
+  },
+  false
+);
+
+document.addEventListener(
+  "touchend",
+  function (event) {
+    if (!gameIsRunning || (!gameActive && currentStepSize <= minStepSize))
+      return;
+
+    touchEndX = event.changedTouches[0].screenX;
+    touchEndY = event.changedTouches[0].screenY;
+    handleSwipe();
+  },
+  false
+);
+
+function handleSwipe() {
+  const swipeThreshold = 50; // Minimum distance for a swipe to be registered
+  const deltaX = touchEndX - touchStartX;
+  const deltaY = touchEndY - touchStartY;
+  let interactionRegistered = false;
+
+  if (Math.abs(deltaX) > Math.abs(deltaY)) {
+    // Horizontal swipe
+    if (Math.abs(deltaX) > swipeThreshold) {
+      if (deltaX > 0) {
+        movePlayer("right");
+      } else {
+        movePlayer("left");
+      }
+      interactionRegistered = true;
+    }
+  } else {
+    // Vertical swipe
+    if (Math.abs(deltaY) > swipeThreshold) {
+      if (deltaY < 0) {
+        // Swipe Up
+        movePlayer("forward");
+        interactionRegistered = true;
+      } else {
+        // Swipe Down - no action for now, could be implemented later
+      }
+    }
+  }
+
+  if (interactionRegistered) {
+    controlsInteractionCount++;
+    if (controlsInteractionCount >= 3) {
+      const inGameHintElement = document.getElementById("inGameControlsHint");
+      if (inGameHintElement) {
+        inGameHintElement.style.display = "none";
+      }
+    }
+  }
+
+  // Reset touch coordinates for the next swipe (optional, but good practice)
+  touchStartX = 0;
+  touchStartY = 0;
+  touchEndX = 0;
+  touchEndY = 0;
+}
 
 // Animation loop
 function animate() {
@@ -621,18 +726,38 @@ window.addEventListener("resize", () => {
 // Start Screen Logic
 document.addEventListener("DOMContentLoaded", () => {
   const startScreen = document.getElementById("startScreen");
-  const startGameButton = document.getElementById("startGameButton");
-  const startButtonSphere = document.getElementById("startButtonSphere"); // The clickable sphere
+  const startGameButton = document.getElementById("startGameButton"); // Though likely unused now
+  const startButtonSphere = document.getElementById("startButtonSphere");
+  // const controlsHintElement = document.getElementById("controlsHint"); // Get the new element // REMOVED
+
+  // Determine and set control hint message // REMOVED
+  // if (navigator.maxTouchPoints > 0) { // REMOVED
+  //   controlsHintElement.innerText = "Swipe to move"; // REMOVED
+  // } else { // REMOVED
+  //   controlsHintElement.innerText = "Use arrow keys to move"; // REMOVED
+  // } // REMOVED
 
   function actualStartGame() {
     if (gameIsRunning) return; // Prevent multiple starts
     gameIsRunning = true;
-    startScreen.style.display = "none";
+    controlsInteractionCount = 0; // Reset count on new game start
+
+    // Display controls hint
+    const inGameHintElement = document.getElementById("inGameControlsHint");
+    if (inGameHintElement) {
+      if (navigator.maxTouchPoints > 0) {
+        inGameHintElement.innerText = "Swipe to move. \n\nDon't lose.";
+      } else {
+        inGameHintElement.innerText = "Use arrow keys to move.\nDon't lose.";
+      }
+      inGameHintElement.style.display = "block";
+    }
+
+    // startScreen.style.display = "none"; // This will be handled by the animation flow now or can remain if desired after fade
     actualHopsTaken = 0; // Ensure actual hops are reset
     displayedSteps = 0; // Ensure displayed steps are reset
     spawnedGrayBallsForDisplayedStep.clear(); // Use renamed Set
     stepCounterElement.innerText = displayedSteps;
-    playerSphere.material.color.set(initialSphereColor.clone());
     renderer.setClearColor(initialSkyColor.clone());
     currentStepSize = initialStepSize;
     currentActualHopHeight = initialHopHeight;
@@ -676,10 +801,39 @@ document.addEventListener("DOMContentLoaded", () => {
     gameOverScreen.style.backgroundColor = "rgba(70, 70, 70, 0)";
     gameOverMessage.style.opacity = "0";
     isFadingToGray = false; // Reset fade flag
+
+    // Ensure startScreen is fully hidden after animations if not already
+    if (startScreen.style.display !== "none") {
+      startScreen.style.display = "none";
+    }
   }
 
-  startGameButton.addEventListener("click", actualStartGame);
-  startButtonSphere.addEventListener("click", actualStartGame); // Sphere also starts game
+  //   startGameButton.addEventListener("click", actualStartGame); // Likely unused
+
+  startButtonSphere.addEventListener("click", () => {
+    if (gameIsRunning) return; // Prevent re-triggering if already in process
+
+    // Disable further clicks on the sphere during animation
+    startButtonSphere.style.pointerEvents = "none";
+
+    // Add class to trigger sphere's "born" animation
+    startButtonSphere.classList.add("sphere-born");
+
+    // Wait for sphere animation (0.3s as per CSS)
+    setTimeout(() => {
+      // Start fading out the start screen
+      startScreen.style.opacity = "0";
+
+      // Wait for start screen fade out (0.5s as per CSS)
+      setTimeout(() => {
+        actualStartGame(); // Call the original game start logic
+
+        // Optionally, reset sphere for potential reuse if start screen could reappear
+        // startButtonSphere.classList.remove("sphere-born");
+        // startButtonSphere.style.pointerEvents = 'auto';
+      }, 500); // Duration of startScreen fade
+    }, 300); // Duration of sphere-born animation
+  });
 });
 
 // Start animation loop immediately for background rendering
@@ -773,8 +927,16 @@ function createSign(basePosition, text, isLeft) {
   const panelGeo = new THREE.BoxGeometry(panelWidth, panelHeight, panelDepth);
 
   let texturedPanelMaterial;
-  // Generate a unique cache key for text + arrow direction
-  const cacheKey = text + (isLeft ? "_left_arrow" : "_right_arrow");
+  // Generate a unique cache key for text + arrow direction/or lack thereof
+  let cacheKey;
+  if (isLeft === true) {
+    cacheKey = text + "_left_arrow";
+  } else if (isLeft === false) {
+    cacheKey = text + "_right_arrow";
+  } else {
+    // isLeft is null or undefined for centered/no arrow
+    cacheKey = text + "_centered";
+  }
 
   if (signPanelTextureMaterialCache[cacheKey]) {
     texturedPanelMaterial = signPanelTextureMaterialCache[cacheKey];
@@ -789,22 +951,47 @@ function createSign(basePosition, text, isLeft) {
     context.fillStyle = "#F5DEB3"; /* Wheat */
     context.fillRect(0, 0, canvasWidth, canvasHeight);
 
-    const fontSize = 44; // Slightly reduced to make space for arrow
+    const fontSize = 40; // Slightly adjusted for potentially longer centered text
     context.font = `bold ${fontSize}px Arial`;
     context.fillStyle = "black";
     context.textAlign = "center";
     context.textBaseline = "middle";
 
-    const arrowUnicode = isLeft ? "\u2190" : "\u2192"; // Left arrow: ←, Right arrow: →
-    const textWithArrow = isLeft
-      ? `${arrowUnicode} ${text}`
-      : `${text} ${arrowUnicode}`;
+    let textToRender = text;
+    if (isLeft === true || isLeft === false) {
+      // Only add arrows for side signs
+      const arrowUnicode = isLeft ? "\u2190" : "\u2192"; // Left arrow: ←, Right arrow: →
+      textToRender = isLeft
+        ? `${arrowUnicode} ${text}`
+        : `${text} ${arrowUnicode}`;
+    }
+    // For centered sign (isLeft is null), textToRender is just text
 
-    // Measure text to potentially adjust positioning (optional for now, trying centered)
-    // const textMetrics = context.measureText(textWithArrow);
-    // const textWidth = textMetrics.width;
+    // Basic word wrapping for longer texts like the new one
+    const words = textToRender.split(" ");
+    let line = "";
+    let lines = [];
+    const maxWidth = canvasWidth - 20; // Max width for text with some padding
 
-    context.fillText(textWithArrow, canvasWidth / 2, canvasHeight / 2);
+    for (let n = 0; n < words.length; n++) {
+      const testLine = line + words[n] + " ";
+      const metrics = context.measureText(testLine);
+      const testWidth = metrics.width;
+      if (testWidth > maxWidth && n > 0) {
+        lines.push(line.trim());
+        line = words[n] + " ";
+      } else {
+        line = testLine;
+      }
+    }
+    lines.push(line.trim());
+
+    const lineHeight = fontSize * 1.2;
+    const startY = canvasHeight / 2 - ((lines.length - 1) * lineHeight) / 2;
+
+    for (let i = 0; i < lines.length; i++) {
+      context.fillText(lines[i], canvasWidth / 2, startY + i * lineHeight);
+    }
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.needsUpdate = true;
@@ -820,14 +1007,24 @@ function createSign(basePosition, text, isLeft) {
   panel.castShadow = true;
   signGroup.add(panel);
 
-  signGroup.position.copy(basePosition);
-  // Offset further ahead and adjust side offset if needed
-  const forwardOffset = 4.0; // Increased from 2.5
-  const sideOffset = 2.5; // Increased from 1.5 to maintain separation with further distance
-  signGroup.position.z -= forwardOffset;
-  signGroup.position.x += isLeft ? -sideOffset : sideOffset;
+  // Positioning and Rotation
+  const forwardOffset = 4.0;
+  let sideOffset = 0; // Default to 0 for centered
+  let rotationY = 0; // Default to 0 for centered
 
-  signGroup.rotation.y = isLeft ? Math.PI / 7 : -Math.PI / 7; // Slightly adjust rotation if needed
+  if (isLeft === true) {
+    sideOffset = -2.5;
+    rotationY = Math.PI / 7;
+  } else if (isLeft === false) {
+    sideOffset = 2.5;
+    rotationY = -Math.PI / 7;
+  }
+  // if isLeft is null, sideOffset and rotationY remain 0, placing the sign centered ahead.
+
+  signGroup.position.x = basePosition.x + sideOffset;
+  signGroup.position.y = basePosition.y; // Assumes basePosition.y is ground level (sphereBaseY)
+  signGroup.position.z = basePosition.z - forwardOffset;
+  signGroup.rotation.y = rotationY;
 
   scene.add(signGroup);
   signs.push(signGroup);
@@ -836,6 +1033,7 @@ function createSign(basePosition, text, isLeft) {
     scene.remove(oldSign);
     oldSign.children.forEach((child) => {
       if (child.geometry) child.geometry.dispose();
+      // Material and texture are cached, so don't dispose them here
     });
   }
 }
@@ -856,7 +1054,7 @@ function createGroundText(position, text) {
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
 
-    context.font = "bold 48px Arial"; // Font size and style
+    context.font = "bold 64px Arial"; // Font size and style - INCREASED from 48px
     context.fillStyle = "rgba(255, 255, 255, 0.9)"; // White text, slightly transparent
     context.textAlign = "center";
     context.textBaseline = "middle";
@@ -875,7 +1073,7 @@ function createGroundText(position, text) {
   }
 
   // Adjust plane size based on canvas aspect ratio to avoid distortion
-  const planeWidth = 4; // Desired world width of the text plane
+  const planeWidth = 6; // Desired world width of the text plane - INCREASED from 4
   const planeHeight = planeWidth * (texture.image.height / texture.image.width);
   const planeGeo = new THREE.PlaneGeometry(planeWidth, planeHeight);
 
