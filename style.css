@@ -1,0 +1,122 @@
+body {
+  margin: 0;
+  overflow: hidden; /* Hide scrollbars */
+  font-family: Arial, sans-serif;
+  color: white;
+}
+
+#gameCanvas {
+  display: block; /* Remove extra space below canvas */
+}
+
+#info {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 10px;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 5px;
+  font-size: 18px;
+}
+
+#startScreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    #87ceeb 0%,
+    #4a90e2 100%
+  ); /* Sky blue gradient */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  z-index: 100;
+  color: white;
+  font-family: "Arial Rounded MT Bold", "Helvetica Rounded", Arial, sans-serif;
+}
+
+#startScreenContent {
+  background-color: rgba(0, 0, 50, 0.3);
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+#startScreen h1 {
+  font-size: 4em;
+  margin-bottom: 20px;
+  color: #ffd700; /* Gold color for title */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+#startScreen p {
+  font-size: 1.5em;
+  margin-bottom: 30px;
+  color: #f0f0f0;
+}
+
+#startButtonSphere {
+  width: 80px;
+  height: 80px;
+  background-color: #ff0000; /* Player sphere red */
+  border-radius: 50%;
+  margin: 20px auto;
+  cursor: pointer;
+  border: 3px solid white;
+  box-shadow: 0 0 15px #ff0000, inset 0 0 10px rgba(255, 255, 255, 0.5);
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+#startButtonSphere:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 25px #ff0000, 0 0 35px #ff4500,
+    inset 0 0 12px rgba(255, 255, 255, 0.6);
+}
+
+#startGameButton {
+  padding: 15px 30px;
+  font-size: 1.5em;
+  color: white;
+  background-color: #228b22; /* Ground green */
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  margin-top: 10px; /* Add some space if sphere isn't clicked */
+}
+
+#startGameButton:hover {
+  background-color: #3cb371; /* Lighter green */
+  transform: translateY(-2px);
+}
+
+#gameOverScreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(70, 70, 70, 0); /* Initially transparent gray */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  z-index: 200; /* Above start screen if it wasn't dismissed, and above game canvas */
+  pointer-events: none; /* Initially not interactive */
+  visibility: hidden; /* Initially hidden */
+}
+
+#gameOverScreen p {
+  font-family: "Arial Rounded MT Bold", "Helvetica Rounded", Arial, sans-serif;
+  font-size: 2.5em;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  opacity: 0; /* Message initially hidden */
+  transition: opacity 1s ease-in-out; /* Fade in message */
+}
